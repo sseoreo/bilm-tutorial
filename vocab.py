@@ -99,13 +99,15 @@ class Vocab:
 
     def encode_line(self, line, add_eos=True):
         line = [self.tok2id[tok] for tok in line.split()]
-        return  line + [self.eos_idx] if add_eos else line 
+
+        return line + [self.eos_idx] if add_eos and self.eos_token else line
 
     def decode_tokids(self, tensor):
         tokens = []
         for tokid in tensor:
             tokens.append(self.id2tok[tokid])
-        tokens = [t if t != self.eos_token else '\n' for t in tokens]
+        
+        # tokens = [t if t != self.eos_token else '\n' for t in tokens]
         return ' '.join(tokens)
 
     @property

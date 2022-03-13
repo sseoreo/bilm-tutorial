@@ -78,17 +78,19 @@ class BERTLanguageModelingDataset(torch.utils.data.Dataset):
         return masked_input, masked_labels 
 
     def __getitem__(self, i):
+        # self.data[i] = "i love you so much"
         seq = self.vocab.encode_line(self.data[i], add_eos=True)[: self.seq_len]
-
+        
         
         # masked_input, masked_labels = self.get_masked_input_and_labels(masked_input)
         # print(len(masked_input), len(masked_labels))
 
         masked_input = torch.tensor( seq+ [self.pad_id] * (self.seq_len - len(seq))).long().contiguous()
         masked_labels = torch.tensor( seq+ [self.pad_id] * (self.seq_len  - len(seq))).long().contiguous()
+        # masked_labels = torch.flip(masked_labels, dims =[-1])
         # print(len(masked_input), len(masked_labels))
         
-        assert len(masked_input) == len(masked_labels) == self.seq_len
+        # assert len(masked_input) == len(masked_labels) == self.seq_len
         return masked_input, masked_labels 
         # sentence embedding: 0 for A, 1 for B
         mlm_target = torch.tensor( seq + [self.eos_id] + [self.pad_id] * (self.seq_len - 1 - len(seq))).long().contiguous()
