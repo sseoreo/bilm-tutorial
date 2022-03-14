@@ -84,7 +84,7 @@ if __name__ == '__main__':
     batch_size = 5
     batch_length = 20
 
-    if False:
+    if True:
         vocab = Vocab(data_dir)
 
         trainset = LMDataset(data_dir, vocab, batch_size, 'train')
@@ -98,12 +98,12 @@ if __name__ == '__main__':
     else:
         vocab = Vocab(data_dir, mask_token='<mask>')
 
-        dataset = BERTLanguageModelingDataset(data_dir, vocab, seq_len=16)
+        dataset = BiLMDataset(data_dir, vocab, seq_len=16)
 
         # 작동 테스트
         dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
-        for batch, (mlm_train, mlm_target) in enumerate(dataloader):
-            print(mlm_train.size(), vocab.decode_tokids(mlm_train[0]))
-            print(mlm_target.size(), vocab.decode_tokids(mlm_target[0]))
+        for i, batch in enumerate(dataloader):
+            print(batch.size(), vocab.decode_tokids(batch[0]))
+            # print(mlm_target.size(), vocab.decode_tokids(mlm_target[0]))
             # break
