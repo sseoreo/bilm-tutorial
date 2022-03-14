@@ -47,17 +47,10 @@ class LMDataset(torch.utils.data.IterableDataset):
 
 
 
-class BERTLanguageModelingDataset(torch.utils.data.Dataset):
-    def __init__(self, data_dir: str, vocab, seq_len: int=512, mask_frac: float=0.15, p: float=0.5, split='train'):
-        """Initiate language modeling dataset.
-        Arguments:
-            data (list): a tensor of tokens. tokens are ids after
-                numericalizing the string tokens.
-                torch.tensor([token_id_1, token_id_2, token_id_3, token_id1]).long()
-            vocab (sentencepiece.SentencePieceProcessor): Vocabulary object used for dataset.
-            p (float): probability for NSP. defaut 0.5
-        """
-        super(BERTLanguageModelingDataset, self).__init__()
+class BiLMDataset(torch.utils.data.Dataset):
+    def __init__(self, data_dir: str, vocab, seq_len: int=512, split='train'):
+        
+        super(BiLMDataset, self).__init__()
         self.vocab = vocab
         with open(os.path.join(data_dir, f"{split}.txt"), "r") as f:
             self.data = [line.strip() for line in f.readlines() if line != '']
@@ -68,57 +61,19 @@ class BERTLanguageModelingDataset(torch.utils.data.Dataset):
         self.pad_id = vocab.padding_idx
         self.mask_id = vocab.mask_idx
 
-        self.p = p
-        self.mask_frac = mask_frac
-
-    def get_masked_input_and_labels(self, encoded_texts, num_mask_per_sample=1):
-        mask_ind = np.random.permutation(len(encoded_texts)-1)[:num_mask_per_sample]
-        masked_input = [self.mask_id if i in mask_ind else encoded_texts[i] for i in range(len(encoded_texts))]
-        masked_labels = [self.pad_id if i not in mask_ind else encoded_texts[i] for i in range(len(encoded_texts))]
-        return masked_input, masked_labels 
 
     def __getitem__(self, i):
-        # self.data[i] = "i love you so much"
         seq = self.vocab.encode_line(self.data[i], add_eos=True)[: self.seq_len]
         
         
-        # masked_input, masked_labels = self.get_masked_input_and_labels(masked_input)
-        # print(len(masked_input), len(masked_labels))
-
-        masked_input = torch.tensor( seq+ [self.pad_id] * (self.seq_len - len(seq))).long().contiguous()
-        masked_labels = torch.tensor( seq+ [self.pad_id] * (self.seq_len  - len(seq))).long().contiguous()
-        # masked_labels = torch.flip(masked_labels, dims =[-1])
-        # print(len(masked_input), len(masked_labels))
+        encoded_input = torch.tensor( seq+ [self.pad_id] * (self.seq_len - len(seq))).long().contiguous()
+        # masked_labels = torch.tensor( seq+ [self.pad_id] * (self.seq_len  - len(seq))).long().contiguous()
         
         # assert len(masked_input) == len(masked_labels) == self.seq_len
-        return masked_input, masked_labels 
-        # sentence embedding: 0 for A, 1 for B
-        mlm_target = torch.tensor( seq + [self.eos_id] + [self.pad_id] * (self.seq_len - 1 - len(seq))).long().contiguous()
-        
-        def masking(data):
-            data = torch.tensor(data).long().contiguous()
-            data_len = data.size(0)
-            ones_num = int(data_len * self.mask_frac)
-            zeros_num = data_len - ones_num
-            lm_mask = torch.cat([torch.zeros(zeros_num), torch.ones(ones_num)])
-            lm_mask = lm_mask[torch.randperm(data_len)]
-            data = data.masked_fill(lm_mask.bool(), self.mask_id)
-
-            return data
-
-        mlm_train = torch.cat([masking(seq), torch.tensor([self.eos_id])]).long().contiguous()
-        mlm_train = torch.cat([mlm_train, torch.tensor([self.pad_id] * (self.seq_len - mlm_train.size(0)))]).long().contiguous()
-
-        # mlm_train, mlm_target, sentence embedding, NSP target
-        return mlm_train, mlm_target
-        # return self.data[i]
+        return encoded_input
 
     def __len__(self):
         return len(self.data)
-
-    def __iter__(self):
-        for x in self.data:
-            yield x
 
     def get_vocab(self):
         return self.vocab
